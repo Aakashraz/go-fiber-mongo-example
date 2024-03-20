@@ -1,0 +1,111 @@
+use school
+db.createCollection("students")
+show dbs
+
+show collections
+// to drop a collections 
+// db.students.drop()
+// to drop a database------
+// db.dropDatabase()
+
+
+// --------------------insert--------------------
+
+db.students.insertOne({
+    name: "Scooby",
+    age: 30,
+    gpa: 3.2
+})
+
+db.students.find()
+
+db.students.insertMany([
+    {
+        name: "Patrick",
+        age: 38,
+        gpa: 3
+    },
+    {
+        name: "Selena",
+        age: 32,
+        gpa: 3.1
+    },
+    {
+        name: "Scott",
+        age: 43,
+        gpa: 2.9
+    }
+])
+
+
+// ---------------find(), sort() and limit()-------------------
+
+db.students.find().sort({age:-1})
+
+db.students.find().limit(2)
+db.students.find().sort({gpa:-1}).limit(2)
+
+db.students.insertOne({
+    name: "Gray",
+    age: 23,
+    gpa: 4.0
+})
+
+db.students.find().sort({gpa:-1}).limit(2)
+
+db.students.find({}, {name:true, _id:false, gpa: true})
+// db.students.find({query}, {projection})
+
+
+//----------------update---------------------
+// .updateOne(filter, update)
+
+db.students.updateOne({name:"Gray"}, {$set:{fullTime:true}})
+db.students.find({name:"Gray"})
+
+// updateOne using objectId:
+db.students.updateOne({_id:ObjectId("65ef29074b237a3db2437d30")},
+    {$set:{fullTime:false}})
+db.students.find({_id:ObjectId("65ef29074b237a3db2437d30")})
+
+db.students.updateOne({_id:ObjectId("65ef29074b237a3db2437d30")}, {$unset:{fullTime:""}})
+
+// update all the documents by assigning(set) the fullTime field to empty string
+db.students.updateMany({}, {$set: {fullTime:""}})
+
+// update all the documents by removing(unset) the fullTime field
+db.students.updateMany({}, {$unset: {fullTime:""}})
+
+db.students.updateOne({name:"Scooby"}, {$set:{fullTime:false}})
+
+// to update all the documents, where if fullTime field dp not exists, then it will create and set the fullTIme field to true
+db.students.updateMany({fullTime:{$exists:false}}, {$set:{fullTime:true}})
+db.students.find()
+
+
+//------------comparison and logical operator ----------------
+
+db.students.find({name:{$ne:"Scott"}})  //$ne: refers to not equal to operator
+db.students.find({gpa:{$lte:3}})        //$lte: refers to less than or  equal to operator
+
+db.students.find({age:{$lte:35, $gte:23}})  //$gte: refers to greater than or equal to operator
+
+//$in and $nin: refers to in  and not in the operator
+db.students.find({name:{$nin:["Patrick","Gray","Scott"]}})
+db.students.find({name:{$in:["Patrick","Gray","Scott"]}})
+
+db.students.find({$and:[{age:{$lte:35}}, {gpa:{$gte:3.2}}]})
+
+// nor: means it requires every statement needs to be false
+db.students.find({$nor:[{fullTime:true}, {gpa:{$lte:3}}, {age:{$lte:25}}]})
+
+db.students.updateOne({name:"Scott"}, {$set:{age:null}})    //to set age: null
+db.students.find({name:"Scott"})
+
+db.students.find({age:{$not:{$lte:30}}})
+
+//creating index
+db.students.createIndex({name:1})
+db.students.getIndexes()    //to get indexes
+db.students.dropIndex("name_1")     //to drop an index
+db.students.find({name:"Scott"}).explain("executionStats")
