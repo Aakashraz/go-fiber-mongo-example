@@ -11,8 +11,8 @@ import (
 )
 
 type MongoInstance struct {
-	Client
-	Db
+	Client *mongo.Client
+	Db     *mongo.Database
 }
 
 var mg MongoInstance
@@ -21,10 +21,10 @@ const dbName = "fiber-hrms"
 const mongoURI = "mongodb://localhost:27017" + dbName
 
 type Employee struct {
-	ID     string
-	Name   string
-	Salary float64
-	Age    float64
+	ID     string  `json:"id,omitempty" bson:"_id, omitempty"`
+	Name   string  `json:"name"`
+	Salary float64 `json:"salary"`
+	Age    float64 `json:"age"`
 }
 
 func connect() error {
@@ -38,6 +38,11 @@ func connect() error {
 	}
 
 	db := client.Database(dbName)
+
+	mg = MongoInstance{
+		Client: client,
+		Db:     db,
+	}
 	return nil
 }
 
