@@ -61,9 +61,14 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/employee", func(ctx *fiber.Ctx) error {
-		query := bson.D{{}}
+		query := bson.D{{}} //creates an empty BSON document (bson.D{{}}) to use as a query filter.
+
 		var employees []Employee = make([]Employee, 0)
 		cursor, err := mg.Db.Collection("employees").Find(ctx.Context(), query)
+		//Then, it initializes an empty slice of Employee structs ([]Employee) using the make function.
+		//After that, it executes a query to retrieve all documents from the "employees" collection in the MongoDB database.
+		//The result is a cursor (cursor) that can be iterated over to access each document.
+
 		if err != nil {
 			return ctx.Status(500).SendString(err.Error())
 		}
@@ -71,6 +76,8 @@ func main() {
 		if err := cursor.All(ctx.Context(), &employees); err != nil {
 			return ctx.Status(500).SendString(err.Error())
 		}
+		//If there's no error, it reads all the documents from the cursor into the employees slice using the All() method.
+		//If an error occurs during this process, it again sets the HTTP status code to 500 and sends the error message as the response body.
 		return ctx.JSON(employees)
 	})
 
@@ -87,11 +94,17 @@ func main() {
 		}
 
 		// to ensure that the data is inserted, we will be using the inserted_ID to find and return that exact data
+		//bson.D: This is a type from the MongoDB driver used to create a Document (BSON document).
 		filter := bson.D{{Key: "_id", Value: insertionResult.InsertedID}}
 		createdRecord := collection.FindOne(c.Context(), filter)
+		//This line attempts to find a single document from the "employees" collection that matches the filter criteria (filter).
 
 		createdEmployee := &Employee{}
+		//A new Employee struct pointer (createdEmployee) is created to store the retrieved document.
+
 		err = createdRecord.Decode(createdEmployee)
+		//createdRecord.Decode decodes the retrieved document (if found) into the createdEmployee struct.
+		//This method decodes the retrieved BSON document into the Go struct format (Employee).
 		if err != nil {
 			return err
 		}
@@ -103,6 +116,7 @@ func main() {
 		idParam := c.Params("id")
 
 		employeeId, err := primitive.ObjectIDFromHex(idParam)
+		//employeeId, err := primitive.ObjectIDFromHex(idParam): This attempts to convert the idParam string (which should be a hexadecimal ObjectID string) into a MongoDB ObjectID type (primitive.ObjectID).
 		if err != nil {
 			return c.SendStatus(400)
 		}
@@ -129,10 +143,37 @@ func main() {
 			return c.SendStatus(500)
 		}
 		employee.ID = idParam
+		//The code assigns idParam to employee.ID again for a few key reasons:
+		//1. Consistency in Response:
+		//
+		//The employee struct is sent back to the client as a JSON response. Without this assignment, the ID field in the response might be empty or have a default value, even though the record was updated successfully in the database.
+		//	Reassigning the idParam to employee.ID ensures that the response accurately reflects the current state of the employee in the database, including its correct ID.
+		//
+		//	2. Avoiding ObjectID Type Issues:
+		//
+		//	The primitive.ObjectIDFromHex function converts the string-based idParam into a MongoDB-specific primitive.ObjectID type.
+		//	Directly using employeeId (the ObjectID type) in JSON encoding might lead to compatibility issues with certain JSON libraries or clients.
+		//	Reassigning the original string-based idParam back to employee.ID guarantees a consistent string representation of the ID in the response, ensuring compatibility with various clients.
+
 		return c.Status(200).JSON(employee)
 	})
 
-	app.Delete("/employee/:id")
+	app.Delete("/employee/:id", func(c *fiber.Ctx) error {
+		employeeId, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			return c.SendStatus(400)
+		}
+		query := bson.D{{Key: "_id", Value: employeeId}}
+		result, err := mg.Db.Collection("employees").DeleteOne(c.Context(), query)
+		if err != nil {
+			return c.SendStatus(500)
+		}
+		if result.DeletedCount < 1 {
+			return c.SendStatus(404)
+		}
+
+		return c.Status(201).JSON("Record Deleted Successfully.")
+	})
 
 	log.Fatal(app.Listen(":3000"))
 	//	if there is error while running server it will exit
