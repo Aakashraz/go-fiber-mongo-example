@@ -21,10 +21,10 @@ type MongoInstance struct {
 var mg MongoInstance
 
 const dbName = "fiber-hrms"
-const mongoURI = "mongodb://localhost:27017" + dbName
+const mongoURI = "mongodb://localhost:27017/" + dbName
 
 type Employee struct {
-	ID     string  `json:"id,omitempty" bson:"_id, omitempty"`
+	ID     string  `json:"id,omitempty" bson:"_id,omitempty"`
 	Name   string  `json:"name"`
 	Salary float64 `json:"salary"`
 	Age    float64 `json:"age"`
@@ -87,6 +87,12 @@ func main() {
 		//	employee := ...: The result of new(Employee) is assigned to the variable employee.
 		//	Since new returns a pointer to the allocated memory, employee is of type *Employee, which is a pointer to an Employee struct.
 
+		if err := c.BodyParser(employee); err != nil {
+			//c.BodyParser(employee); This line attempts to parse the request body of the current HTTP request (c). The BodyParser function within Fiber tries to decode
+			//the request body based on the content type headers and populate the fields of the provided employee struct with the parsed data (assuming the request body is JSON formatted).
+			return c.Status(400).SendString(err.Error())
+		}
+
 		employee.ID = ""
 		insertionResult, err := collection.InsertOne(c.Context(), employee)
 		if err != nil {
@@ -116,23 +122,28 @@ func main() {
 		idParam := c.Params("id")
 
 		employeeId, err := primitive.ObjectIDFromHex(idParam)
+		log.Println("employee Id", employeeId)
 		//employeeId, err := primitive.ObjectIDFromHex(idParam): This attempts to convert the idParam string (which should be a hexadecimal ObjectID string) into a MongoDB ObjectID type (primitive.ObjectID).
 		if err != nil {
 			return c.SendStatus(400)
 		}
 		employee := new(Employee)
+
 		if err := c.BodyParser(employee); err != nil {
 			return c.Status(400).SendString(err.Error())
 		}
+		log.Println(employee)
+
 		query := bson.D{{Key: "_id", Value: employeeId}}
-		update := bson.D{{
-			Key: "$set",
-			Value: bson.D{
-				{Key: "name", Value: employee.Name},
-				{Key: "age", Value: employee.Age},
-				{Key: "salary", Value: employee.Salary},
+		update := bson.D{
+			{Key: "$set",
+				Value: bson.D{
+					{Key: "name", Value: employee.Name},
+					{Key: "age", Value: employee.Age},
+					{Key: "salary", Value: employee.Salary},
+				},
 			},
-		}}
+		}
 		err = mg.Db.Collection("employees").FindOneAndUpdate(c.Context(), query, update).Err()
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
