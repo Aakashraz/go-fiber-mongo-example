@@ -87,14 +87,18 @@ func main() {
 		//	employee := ...: The result of new(Employee) is assigned to the variable employee.
 		//	Since new returns a pointer to the allocated memory, employee is of type *Employee, which is a pointer to an Employee struct.
 
+		log.Println("context", c)
 		if err := c.BodyParser(employee); err != nil {
-			//c.BodyParser(employee); This line attempts to parse the request body of the current HTTP request (c). The BodyParser function within Fiber tries to decode
-			//the request body based on the content type headers and populate the fields of the provided employee struct with the parsed data (assuming the request body is JSON formatted).
+			//c.BodyParser(employee); This line attempts to parse the request body of the current HTTP request (c). The BodyParser function within Fiber tries to decode the
+			// request body based on the content type headers and populate the fields of the provided employee struct with the parsed data (assuming the request body is JSON formatted).
 			return c.Status(400).SendString(err.Error())
 		}
 
 		employee.ID = ""
+		//Inserting the employee into the database:
 		insertionResult, err := collection.InsertOne(c.Context(), employee)
+		//It inserts the newly created employee document into the MongoDB collection using the InsertOne() method.
+		//The result of the insertion operation (insertionResult) and any error (err) are captured.
 		if err != nil {
 			return c.Status(500).SendString(err.Error())
 		}
@@ -130,6 +134,8 @@ func main() {
 		employee := new(Employee)
 
 		if err := c.BodyParser(employee); err != nil {
+			//c.BodyParser(employee); This line attempts to parse the request body of the current HTTP request (c). The BodyParser function within Fiber tries to decode the
+			// request body based on the content type headers and populate the fields of the provided employee struct with the parsed data (assuming the request body is JSON formatted).
 			return c.Status(400).SendString(err.Error())
 		}
 		log.Println(employee)
