@@ -138,7 +138,7 @@ func main() {
 			// request body based on the content type headers and populate the fields of the provided employee struct with the parsed data (assuming the request body is JSON formatted).
 			return c.Status(400).SendString(err.Error())
 		}
-		log.Println(employee)
+		log.Println("updated employee data: ", employee)
 
 		query := bson.D{{Key: "_id", Value: employeeId}}
 		update := bson.D{
