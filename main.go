@@ -81,6 +81,34 @@ func main() {
 		return ctx.JSON(employees)
 	})
 
+	app.Get("/employee/:id", func(c *fiber.Ctx) error {
+		collection := mg.Db.Collection("employees")
+
+		idParams := c.Params("id")
+		// to validate the id parameters
+		if idParams == "" {
+			return c.Status(400).JSON(map[string]interface{}{
+				"error": "id field is either not valid or empty, which is required",
+			})
+		}
+		objectId, err := primitive.ObjectIDFromHex(idParams)
+		if err != nil {
+			return c.Status(400).SendString(err.Error())
+		}
+
+		getEmployeeById := new(Employee)
+
+		filter := bson.D{{Key: "_id", Value: objectId}}
+		result := collection.FindOne(c.Context(), filter)
+		// this will decode the retrieved documents (if found) from the result into the getEmployeeById
+		err = result.Decode(getEmployeeById)
+		if err != nil {
+			return c.Status(500).SendString(err.Error())
+		}
+
+		return c.Status(200).JSON(getEmployeeById)
+	})
+
 	app.Post("/employee", func(c *fiber.Ctx) error {
 		collection := mg.Db.Collection("employees")
 		employee := new(Employee)
